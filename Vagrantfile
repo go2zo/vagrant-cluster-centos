@@ -14,6 +14,7 @@ $vm_gui = false
 $vm_memory = 3072
 $vm_cpus = 2
 $forwarded_ports = {}
+$password_authentication = true
 
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
@@ -37,7 +38,7 @@ end
 Vagrant.configure("2") do |config|
   # always use Vagrants insecure key
   config.ssh.insert_key = false
-
+  
   config.vm.box = "centos/7"
 
   # enable hostmanager
@@ -45,6 +46,14 @@ Vagrant.configure("2") do |config|
 
   # configure the host's /etc/hosts
   config.hostmanager.manage_host = true
+
+  # PasswordAuthentication yes
+  if $password_authentication
+    config.vm.provision "shell", inline: <<-EOC
+      sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
+      sudo systemctl restart sshd;
+    EOC
+  end
 
   (1..$num_instances).each do |i|
     config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
