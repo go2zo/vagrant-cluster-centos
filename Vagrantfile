@@ -5,16 +5,34 @@ require 'fileutils'
 
 Vagrant.require_version ">= 1.6.0"
 
+# Make sure the vagrant-hostmanager plugin is installed
+required_plugins = %w(vagrant-hostmanager)
+
+plugins_to_install = required_plugins.select { |plugin| not Vagrant.has_plugin? plugin }
+if not plugins_to_install.empty?
+  puts "Installing plugins: #{plugins_to_install.join(' ')}"
+  if system "vagrant plugin install #{plugins_to_install.join(' ')}"
+    exec "vagrant #{ARGV.join(' ')}"
+  else
+    abort "Installation of one or more plugins has failed. Aborting."
+  end
+end
+
+CONFIG = File.join(File.dirname(__FILE__), "config.rb")
+
 # Defaults for config options defined in CONFIG
-$num_instances = 3
+$num_instances = 1
 $instance_name_prefix = "centos"
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
-$vm_memory = 3072
-$vm_cpus = 2
+$vm_memory = 1024
+$vm_cpus = 1
 $forwarded_ports = {}
-$password_authentication = true
+$password_authentication = false
+
+$master_instances = []
+$master_name_prefix = "master"
 
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
@@ -39,7 +57,8 @@ Vagrant.configure("2") do |config|
   # always use Vagrants insecure key
   config.ssh.insert_key = false
   
-  config.vm.box = "centos/7"
+  config.vm.box = "phensley/centos-7-java"
+  config.vm.box_version = "0.0.1"
 
   # enable hostmanager
   config.hostmanager.enabled = true
@@ -50,14 +69,44 @@ Vagrant.configure("2") do |config|
   # PasswordAuthentication yes
   if $password_authentication
     config.vm.provision "shell", inline: <<-EOC
-      sudo sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
-      sudo systemctl restart sshd;
+      sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
+      systemctl restart sshd;
     EOC
   end
 
+  master_count = 0
+  slave_count = 0
+
   (1..$num_instances).each do |i|
-    config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
+    if $master_instances.include?(i)
+      if $master_instances.length == 1
+        vm_name = $master_name_prefix
+      else
+        vm_name = "%s%02d" % [$master_name_prefix, master_count += 1]
+      end
+    else
+      if $num_instances - $master_instances.length == 1
+	    vm_name = $instance_name_prefix
+      else
+        vm_name = "%s%02d" % [$instance_name_prefix, slave_count += 1]
+      end
+    end
+    
+    config.vm.define vm_name do |config|
+      vm_hostname = $domain_name ? "#{vm_name}.#{$domain_name}" : vm_name
+	  
+	  # Setup Hostname
       config.vm.hostname = vm_name
+	  config.hostmanager.aliases = %w(vm_hostname)
+	  
+	  config.vm.provision :shell, inline: <<-EOC
+	    systemctl start ntpd
+	    timedatectl set-timezone Asia/Seoul
+	    systemctl disable firewalld
+	    setenforce 0
+	    systemctl disable packagekit
+	    bash -c 'echo -e "umask 0022" >> /etc/profile'
+	  EOC
 
       if $enable_serial_logging
         logdir = File.join(File.dirname(__FILE__), "log")
@@ -85,7 +134,6 @@ Vagrant.configure("2") do |config|
 
       ip = "172.17.11.#{i+100}"
       config.vm.network :private_network, ip: ip
-
     end
   end
 end
