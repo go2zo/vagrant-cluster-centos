@@ -31,9 +31,6 @@ $vm_cpus = 1
 $forwarded_ports = {}
 $password_authentication = false
 
-$master_instances = []
-$master_name_prefix = "master"
-
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
 if ENV["NUM_INSTANCES"].to_i > 0 && ENV["NUM_INSTANCES"]
@@ -57,8 +54,7 @@ Vagrant.configure("2") do |config|
   # always use Vagrants insecure key
   config.ssh.insert_key = false
   
-  config.vm.box = "phensley/centos-7-java"
-  config.vm.box_version = "0.0.1"
+  config.vm.box = "centos/7"
 
   # enable hostmanager
   config.hostmanager.enabled = true
@@ -67,46 +63,16 @@ Vagrant.configure("2") do |config|
   config.hostmanager.manage_host = true
 
   # PasswordAuthentication yes
-  if $password_authentication
-    config.vm.provision "shell", inline: <<-EOC
-      sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
-      systemctl restart sshd;
-    EOC
-  end
-
-  master_count = 0
-  slave_count = 0
+  # if $password_authentication
+  #   config.vm.provision "shell", inline: <<-EOC
+  #     sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config;
+  #     systemctl restart sshd;
+  #   EOC
+  # end
 
   (1..$num_instances).each do |i|
-    if $master_instances.include?(i)
-      if $master_instances.length == 1
-        vm_name = $master_name_prefix
-      else
-        vm_name = "%s%02d" % [$master_name_prefix, master_count += 1]
-      end
-    else
-      if $num_instances - $master_instances.length == 1
-	    vm_name = $instance_name_prefix
-      else
-        vm_name = "%s%02d" % [$instance_name_prefix, slave_count += 1]
-      end
-    end
-    
-    config.vm.define vm_name do |config|
-      vm_hostname = $domain_name ? "#{vm_name}.#{$domain_name}" : vm_name
-	  
-	  # Setup Hostname
+    config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
       config.vm.hostname = vm_name
-	  config.hostmanager.aliases = %w(vm_hostname)
-	  
-	  config.vm.provision :shell, inline: <<-EOC
-	    systemctl start ntpd
-	    timedatectl set-timezone Asia/Seoul
-	    systemctl disable firewalld
-	    setenforce 0
-	    systemctl disable packagekit
-	    bash -c 'echo -e "umask 0022" >> /etc/profile'
-	  EOC
 
       if $enable_serial_logging
         logdir = File.join(File.dirname(__FILE__), "log")
@@ -134,6 +100,26 @@ Vagrant.configure("2") do |config|
 
       ip = "172.17.11.#{i+100}"
       config.vm.network :private_network, ip: ip
+
+      # Enable provisioning with a Docker.
+      config.vm.provision :docker
+      config.vm.provision :docker_compose,
+        compose_version: "1.23.2",
+        yml: "/vagrant/docker-compose2.yml",
+        rebuild: true,
+        run: "always"
+
+      # Enable provisioning with a shell script. Additional provisioners such as
+      # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
+      # documentation for more information about their specific syntax and use.
+      # config.vm.provision "shell", inline: <<-SHELL
+      #   apt-get update
+      #   apt-get install -y apache2
+      # SHELL
+      config.vm.provision :shell, inline: <<-SHELL
+        # install net-tools
+        yum -y install net-tools
+      SHELL
     end
   end
 end
