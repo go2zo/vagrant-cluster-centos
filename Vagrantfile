@@ -6,7 +6,7 @@ require 'fileutils'
 Vagrant.require_version ">= 1.6.0"
 
 # Make sure the vagrant-hostmanager plugin is installed
-required_plugins = %w(vagrant-hostmanager)
+required_plugins = %w(vagrant-docker-compose vagrant-hostmanager vagrant-vbguest)
 
 plugins_to_install = required_plugins.select { |plugin| not Vagrant.has_plugin? plugin }
 if not plugins_to_install.empty?
@@ -35,6 +35,10 @@ $password_authentication = false
 # $num_instances while allowing config.rb to override it
 if ENV["NUM_INSTANCES"].to_i > 0 && ENV["NUM_INSTANCES"]
   $num_instances = ENV["NUM_INSTANCES"].to_i
+end
+
+if File.exist?(CONFIG)
+  require CONFIG
 end
 
 # Use old vb_xxx config variables when set
@@ -69,6 +73,21 @@ Vagrant.configure("2") do |config|
   #     systemctl restart sshd;
   #   EOC
   # end
+
+  # we will try to autodetect this path. 
+  # However, if we cannot or you have a special one you may pass it like:
+  # config.vbguest.iso_path = "#{ENV['HOME']}/Downloads/VBoxGuestAdditions.iso"
+  # or an URL:
+  # config.vbguest.iso_path = "http://company.server/VirtualBox/%{version}/VBoxGuestAdditions.iso"
+  # or relative to the Vagrantfile:
+  # config.vbguest.iso_path = "../relative/path/to/VBoxGuestAdditions.iso"
+  
+  # set auto_update to false, if you do NOT want to check the correct 
+  # additions version when booting this machine
+  config.vbguest.auto_update = false
+  
+  # do NOT download the iso file from a webserver
+  config.vbguest.no_remote = true
 
   (1..$num_instances).each do |i|
     config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
@@ -105,7 +124,7 @@ Vagrant.configure("2") do |config|
       config.vm.provision :docker
       config.vm.provision :docker_compose,
         compose_version: "1.23.2",
-        yml: "/vagrant/docker-compose2.yml",
+        yml: "/vagrant/docker-compose.yml",
         rebuild: true,
         run: "always"
 
