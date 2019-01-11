@@ -1,6 +1,6 @@
 # Size of the Linux cluster created by Vagrant
 #$num_instances=1
-$num_instances=2
+$num_instances=1
 
 # Change basename of the VM
 # The default value is "centos", which results in VMs named starting with
@@ -10,7 +10,5 @@ $num_instances=2
 # Customize VMs
 #$vm_gui = false
 #$vm_memory = 1024
-$vm_memory = 2048
 #$vm_cpus = 1
-$vm_cpus = 2
 #$vb_cpuexecutioncap = 100

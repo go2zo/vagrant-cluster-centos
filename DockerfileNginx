@@ -1,0 +1,6 @@
+FROM nginx:latest
+MAINTAINER jihokim <go2zo.ooo@gmail.com>
+
+ARG CONFIG_DIR
+
+RUN ls -al /vagrant

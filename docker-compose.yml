@@ -9,10 +9,17 @@ services:
       - 8080:8080
   nginx:
     image: nginx:latest
+    # build:
+    #   context: .
+    #   dockerfile: /vagrant/DockerfileNginx
+    #   args:
+    #     CONFIG_DIR: /vagrant/nginx
     volumes:
-      - /vagrant/mysite.template:/etc/nginx/conf.d/mysite.template
+      - /vagrant/nginx/conf.d:/etc/nginx/conf.d
     ports:
       - 80:80
     environment:
       - NGINX_HOST=foobar.com
       - NGINX_PORT=80
+    command: [nginx, '-g', 'daemon off;']
+      
