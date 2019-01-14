@@ -60,7 +60,7 @@ def vm_name(i)
   prefix = instance_name_prefix(i)
   count = $counts[prefix].nil? ? 0 : $counts[prefix]
   $counts[prefix] = count + 1
-  $instance_name_format % [instance_name_prefix(i), count]
+  $instance_name_format % [instance_name_prefix(i), count + 1]
 end
 
 def multi_config
