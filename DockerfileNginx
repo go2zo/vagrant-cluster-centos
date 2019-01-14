@@ -1,6 +1,9 @@
 FROM nginx:latest
 MAINTAINER jihokim <go2zo.ooo@gmail.com>
 
+RUN mkdir /vagrant
+VOLUME ["/vagrant"]
+
 ARG CONFIG_DIR
 
-RUN ls -al /vagrant
+CMD [nginx, "-g", "daemon off;"]
