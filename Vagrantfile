@@ -46,6 +46,7 @@ end
 
 # Use YAML configuration
 $instances_hash = YAML.load(File.read($instances_config)) if !$instances_config.nil? && !$instances_config.empty? && $instances_config.end_with?("yml")
+$counts = {}
 
 def docker_compose_yml(i)
   $instances_hash.nil? || $instances_hash["yml"].nil? ? $docker_compose_yml : $instances_hash["yml"].select{|key| key===i}.values.first
@@ -56,7 +57,10 @@ def instance_name_prefix(i)
 end
 
 def vm_name(i)
-  $instance_name_format % [instance_name_prefix(i), i]
+  prefix = instance_name_prefix(i)
+  count = $counts[prefix].nil? ? 0 : $counts[prefix]
+  $counts[prefix] = count + 1
+  $instance_name_format % [instance_name_prefix(i), count]
 end
 
 def multi_config
