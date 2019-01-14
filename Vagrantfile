@@ -2,6 +2,7 @@
 # # vi: set ft=ruby :
 
 require 'fileutils'
+require 'yaml'
 
 Vagrant.require_version ">= 1.6.0"
 
@@ -30,6 +31,8 @@ $vm_memory = 1024
 $vm_cpus = 1
 $forwarded_ports = {}
 $password_authentication = false
+$instance_name_format="%s-%02d"
+$docker_compose_yml = "docker-compose.yml"
 
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
@@ -39,6 +42,25 @@ end
 
 if File.exist?(CONFIG)
   require CONFIG
+end
+
+# Use YAML configuration
+$instances_hash = YAML.load(File.read($instances_config)) if !$instances_config.nil? && !$instances_config.empty? && $instances_config.end_with?("yml")
+
+def docker_compose_yml(i)
+  $instances_hash.nil? || $instances_hash["yml"].nil? ? $docker_compose_yml : $instances_hash["yml"].select{|key| key===i}.values.first
+end
+
+def instance_name_prefix(i)
+  $instances_hash.nil? || $instances_hash["prefix"].nil? ? $instance_name_prefix : $instances_hash["prefix"].select{|key| key===i}.values.first
+end
+
+def vm_name(i)
+  $instance_name_format % [instance_name_prefix(i), i]
+end
+
+def multi_config
+  !$instances.nil?
 end
 
 # Use old vb_xxx config variables when set
@@ -90,7 +112,7 @@ Vagrant.configure("2") do |config|
   config.vbguest.no_remote = true
 
   (1..$num_instances).each do |i|
-    config.vm.define vm_name = "%s-%02d" % [$instance_name_prefix, i] do |config|
+    config.vm.define vm_name = vm_name(i) do |config|
       config.vm.hostname = vm_name
 
       if $enable_serial_logging
@@ -107,8 +129,8 @@ Vagrant.configure("2") do |config|
       end
 
       # foward Docker registry port to host for node 01
-      if i == 1
-        config.vm.network :forwarded_port, guest: 5000, host: 5000
+      if multi_config || i == 1
+        config.vm.network :forwarded_port, guest: 5000, host: (4999 + i)
       end
 
       config.vm.provider :virtualbox do |vb|
@@ -124,7 +146,7 @@ Vagrant.configure("2") do |config|
       config.vm.provision :docker
       config.vm.provision :docker_compose,
         compose_version: "1.23.2",
-        yml: "/vagrant/docker-compose.yml",
+        yml: "/vagrant/%s" % [docker_compose_yml(i)],
         rebuild: true,
         run: "always"
 

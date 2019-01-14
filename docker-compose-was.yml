@@ -1,0 +1,9 @@
+version: '3.7'
+
+services:
+  tomcat:
+    image: tomcat:latest
+    volumes:
+      - /vagrant/tomcat/logs/:/usr/local/tomcat/logs
+    ports:
+      - 8080:8080
