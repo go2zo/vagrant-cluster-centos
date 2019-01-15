@@ -45,13 +45,18 @@ if File.exist?(CONFIG)
 end
 
 # Use YAML configuration
-$instances_hash = YAML.load(File.read($instances_config)) if !$instances_config.nil? && !$instances_config.empty? && $instances_config.end_with?("yml")
+$instances = YAML.load(File.read($instances_config)) if !$instances_config.nil? && !$instances_config.empty? && $instances_config.end_with?("yml")
 $counts = {}
 
-def docker_compose_yml(i)
-  $instances_hash.nil? || $instances_hash["yml"].nil? ? $docker_compose_yml : $instances_hash["yml"].select{|key| key===i}.values.first
+def instance(i)
+  $instances.select{|key| key===i}.values.first if !$instances.nil?
 end
 
+def docker_compose_yml(i)
+  instance = $instances.select{|key| key===i}.values.first if !$instances.nil?
+  instance.nil? ? $docker_compose_yml : $instances["yml"]
+end
+Í
 def instance_name_prefix(i)
   $instances_hash.nil? || $instances_hash["prefix"].nil? ? $instance_name_prefix : $instances_hash["prefix"].select{|key| key===i}.values.first
 end
