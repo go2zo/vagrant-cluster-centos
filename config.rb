@@ -13,4 +13,6 @@ $num_instances=3
 #$vm_cpus = 1
 #$vb_cpuexecutioncap = 100
 
+$enable_serial_logging=false
+
 $instances_config="instances.yml"

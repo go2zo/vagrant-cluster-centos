@@ -53,23 +53,20 @@ def instance(i)
 end
 
 def docker_compose_yml(i)
-  instance = $instances.select{|key| key===i}.values.first if !$instances.nil?
-  instance.nil? ? $docker_compose_yml : $instances["yml"]
+  instance = instance(i)
+  instance.nil? ? $docker_compose_yml : instance["yml"]
 end
-Í
+
 def instance_name_prefix(i)
-  $instances_hash.nil? || $instances_hash["prefix"].nil? ? $instance_name_prefix : $instances_hash["prefix"].select{|key| key===i}.values.first
+  instance = instance(i)
+  instance.nil? ? $instance_name_prefix : instance["prefix"]
 end
 
 def vm_name(i)
   prefix = instance_name_prefix(i)
-  count = $counts[prefix].nil? ? 0 : $counts[prefix]
+  count = $counts[prefix].nil? ? 1 : $counts[prefix]
   $counts[prefix] = count + 1
-  $instance_name_format % [instance_name_prefix(i), count + 1]
-end
-
-def multi_config
-  !$instances.nil?
+  $instance_name_format % [instance_name_prefix(i), count]
 end
 
 # Use old vb_xxx config variables when set
@@ -138,8 +135,8 @@ Vagrant.configure("2") do |config|
       end
 
       # foward Docker registry port to host for node 01
-      if multi_config || i == 1
-        config.vm.network :forwarded_port, guest: 5000, host: (4999 + i)
+      if i == 1
+        config.vm.network :forwarded_port, guest: 5000, host: 5000
       end
 
       config.vm.provider :virtualbox do |vb|
@@ -155,7 +152,7 @@ Vagrant.configure("2") do |config|
       config.vm.provision :docker
       config.vm.provision :docker_compose,
         compose_version: "1.23.2",
-        yml: "/vagrant/%s" % [docker_compose_yml(i)],
+        yml: "/vagrant/%s" % docker_compose_yml(i),
         rebuild: true,
         run: "always"
 

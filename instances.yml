@@ -1,7 +1,7 @@
 ---
-yml:
-  1: docker-compose-server.yml
-  !ruby/range 2..3: docker-compose-was.yml
-prefix:
-  1: "nginx"
-  !ruby/range 2..3: "tomcat"
+1:
+  yml: docker-compose-server.yml
+  prefix: "nginx"
+!ruby/range 2..3:
+  yml: docker-compose-was.yml
+  prefix: "tomcat"
