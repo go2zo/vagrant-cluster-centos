@@ -33,6 +33,7 @@ $forwarded_ports = {}
 $password_authentication = false
 $instance_name_format="%s-%02d"
 $docker_compose_yml = "docker-compose.yml"
+$counts = {}
 
 # Attempt to apply the deprecated environment variable NUM_INSTANCES to
 # $num_instances while allowing config.rb to override it
@@ -45,8 +46,10 @@ if File.exist?(CONFIG)
 end
 
 # Use YAML configuration
-$instances = YAML.load(File.read($instances_config)) if !$instances_config.nil? && !$instances_config.empty? && $instances_config.end_with?("yml")
-$counts = {}
+INSTANCES_CONFIG = $instances_config.nil? ? '' : File.join(File.dirname(__FILE__), $instances_config);
+if File.exist?(INSTANCES_CONFIG) && INSTANCES_CONFIG.end_with?("yml")
+    $instances = YAML.load(File.read(INSTANCES_CONFIG))
+end
 
 def instance(i)
   $instances.select{|key| key===i}.values.first if !$instances.nil?
