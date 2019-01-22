@@ -24,6 +24,7 @@ CONFIG = File.join(File.dirname(__FILE__), "config.rb")
 # Defaults for config options defined in CONFIG
 $num_instances = 1
 $instance_name_prefix = "centos"
+$instance_default_ip = "172.11.1.100"
 $enable_serial_logging = false
 $share_home = false
 $vm_gui = false
@@ -46,23 +47,30 @@ if File.exist?(CONFIG)
 end
 
 # Use YAML configuration
-INSTANCES_CONFIG = $instances_config.nil? ? '' : File.join(File.dirname(__FILE__), $instances_config);
-if File.exist?(INSTANCES_CONFIG) && INSTANCES_CONFIG.end_with?("yml")
-    $instances = YAML.load(File.read(INSTANCES_CONFIG))
+INSTANCES_EXTERNAL_CONFIG = $instances_external_config.nil? ? "" : File.join(File.dirname(__FILE__), $instances_external_config);
+if File.exist?(INSTANCES_EXTERNAL_CONFIG)
+  if INSTANCES_EXTERNAL_CONFIG.end_with?("yml")
+    $instances_config = YAML.load(File.read(INSTANCES_EXTERNAL_CONFIG))
+  end
 end
 
-def instance(i)
-  $instances.select{|key| key===i}.values.first if !$instances.nil?
+def instance_config(i)
+  $instances_config.select{|key| key===i}.values.first if !$instances_config.nil?
 end
 
 def docker_compose_yml(i)
-  instance = instance(i)
-  instance.nil? ? $docker_compose_yml : instance["yml"]
+  inst_cfg = instance_config(i)
+  (inst_cfg.nil? || inst_cfg["yml"].nil?) ? $docker_compose_yml : inst_cfg["yml"]
 end
 
 def instance_name_prefix(i)
-  instance = instance(i)
-  instance.nil? ? $instance_name_prefix : instance["prefix"]
+  inst_cfg = instance_config(i)
+  (inst_cfg.nil? || inst_cfg["prefix"].nil?) ? $instance_name_prefix : inst_cfg["prefix"]
+end
+
+def instance_ip(i)
+  inst_cfg = instance_config(i)
+  (inst_cfg.nil? || inst_cfg["ip"].nil?) ? $instance_default_ip : inst_cfg["ip"]
 end
 
 def vm_name(i)
@@ -157,7 +165,8 @@ Vagrant.configure("2") do |config|
         compose_version: "1.23.2",
         yml: "/vagrant/%s" % docker_compose_yml(i),
         rebuild: true,
-        run: "always"
+        run: "always",
+        command_options: { logs: "--tail='all'" }
 
       # Enable provisioning with a shell script. Additional provisioners such as
       # Puppet, Chef, Ansible, Salt, and Docker are also available. Please see the
