@@ -1,0 +1,10 @@
+---
+- username: admin
+  password: admin
+  roles:
+  - manager-gui
+  - admin
+- username: user
+  password: password
+  roles:
+  - user

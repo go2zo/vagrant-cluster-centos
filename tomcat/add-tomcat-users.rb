@@ -1,28 +1,43 @@
+#!/usr/bin/env ruby
+
+# $ ./add-tomcat-users.eb <source> <target> tomcat-users.yml
+
+require 'yaml'
 require 'nokogiri'
 
-file_name = ARGV[0]
-file_extension = File.extname(file_name)
-file_basename = File.basename(file_name, file_extension)
+origin = ARGV[0]
+target = ARGV[1]
+data = ARGV[2]
 
-f = File.open(file_name)
-@doc = Nokogiri::XML(f)
+# Parsing origin 'tomcat-users.xml' file
+f = File.open(origin)
+@doc = Nokogiri::XML(f) {|config| config.noblanks}
 f.close
 
+# Parsing users data file
+f = File.open(data)
+@users_hash = YAML.load(f)
+f.close
+
+# Fetch hole roles
+@roles_array = @users_hash.map {|el| el.fetch("roles")}.flatten
+
 @doc.xpath('//xmlns:tomcat-users').each do |users|
-  role = Nokogiri::XML::Node.new "role", @doc
-  role["rolename"] = "manager-gui"
+  # add role nodes
+  @roles_array.each do |r|
+    role = Nokogiri::XML::Node.new "role", @doc
+    role["rolename"] = r
+    users.add_child(role)
+  end
 
-  puts role.to_xml
-  users.add_child(role)
-
-  user = Nokogiri::XML::Node.new "user", @doc
-  user["username"] = "admin"
-  user["password"] = "password"
-  user["roles"] = "manager-gui,admin"
-  users.add_child(user)
+  # add user nodes
+  @users_hash.each do |u|
+    user = Nokogiri::XML::Node.new "user", @doc
+    u.each {|key, value| user[key] = ((value.is_a? Array) ? value.join(",") : value)}
+    users.add_child(user)
+  end
 end
 
-fixed = file_basename + "_fixed" + file_extension
-f = File.open(fixed, 'w')
-f.puts @doc.to_xml
+f = File.open(target, 'w')
+f.puts @doc.to_xml(:indent => 2, :encoding => 'UTF-8')
 f.close

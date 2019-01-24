@@ -5,5 +5,6 @@ services:
     image: tomcat:latest
     volumes:
       - /vagrant/tomcat/logs/:/usr/local/tomcat/logs
+      - /vagrant/tomcat/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
     ports:
       - 8080:8080
