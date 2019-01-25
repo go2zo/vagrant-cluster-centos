@@ -2,9 +2,17 @@ version: '3.7'
 
 services:
   tomcat:
-    image: tomcat:latest
-    volumes:
-      - /vagrant/tomcat/logs/:/usr/local/tomcat/logs
-      - /vagrant/tomcat/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
+    # image: tomcat:latest
+    # volumes:
+    #   - /vagrant/tomcat/logs/:/usr/local/tomcat/logs
+    #   - /vagrant/tomcat/conf/tomcat-users.xml:/usr/local/tomcat/conf/tomcat-users.xml
+    #   - /vagrant/tomcat/webapps/manager/META-INF/context.xml:/usr/local/tomcat/webapps/manager/META-INF/context.xml
     ports:
       - 8080:8080
+    # command: /bin/bash -c "/usr/local/tomcat/bin/catalina.sh run"
+    build:
+      context: .
+      dockerfile: ./DockerfileTomcat
+      args:
+        TOMCAT_USERS_CONFIG: tomcat/conf/tomcat-users.xml
+        TOMCAT_MANAGER_CONTEXT: tomcat/webapps/manager/META-INF/context.xml

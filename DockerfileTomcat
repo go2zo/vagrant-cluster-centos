@@ -1,0 +1,10 @@
+FROM tomcat:latest
+MAINTAINER jihokim <go2zo.ooo@gmail.com>
+
+ARG TOMCAT_USERS_CONFIG
+ARG TOMCAT_MANAGER_CONTEXT
+
+COPY ${TOMCAT_USERS_CONFIG} /usr/local/tomcat/conf/
+COPY ${TOMCAT_MANAGER_CONTEXT} /usr/local/tomcat/webapps/manager/META-INF/
+
+CMD ["catalina.sh", "run"]

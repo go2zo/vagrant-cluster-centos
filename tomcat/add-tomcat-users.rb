@@ -1,9 +1,11 @@
 #!/usr/bin/env ruby
 
-# $ ./add-tomcat-users.eb <source> <target> tomcat-users.yml
+# $ ./add-tomcat-users.eb <source> <target> <data>
+# run './add-tomcat-users.eb default-tomcat-users.xml conf/tomcat-users.xml users.yml'
 
 require 'yaml'
 require 'nokogiri'
+require 'fileutils'
 
 origin = ARGV[0]
 target = ARGV[1]
@@ -38,6 +40,10 @@ f.close
   end
 end
 
+dirname = File.dirname(target)
+unless File.directory?(dirname)
+  FileUtils.mkdir_p(dirname)
+end
 f = File.open(target, 'w')
 f.puts @doc.to_xml(:indent => 2, :encoding => 'UTF-8')
 f.close
